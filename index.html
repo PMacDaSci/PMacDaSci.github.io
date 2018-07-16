@@ -8,6 +8,8 @@
     <meta name="description" content="PeterMac Data Science training">
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+    <link rel="stylesheet" type="text/css" href="slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="slick/slick-theme.css"/>
 
     <title>PeterMac Data Science Training</title>
   </head>
@@ -27,7 +29,12 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h1>
+
+        <div class="your-class">
+          <div><img src="images/MariaDoyle.jpeg" alt="First wkshp session 1" /></div>
+          <div><img src="images/RoxaneLegaie.jpeg" alt="First wkshp session 2" /></div>
+          <div><img src="images/LucyLiu.jpeg" alt="First wkshp session 3" /></div>
+        </div>
 
 <p style="font-size:14px">Current and upcoming Data Science courses at Peter Mac are listed below.</p>
 
@@ -51,7 +58,17 @@
       </footer>
     </div>
 
-    
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="slick/slick.min.js"></script>
+
+    <script type="text/javascript">
+    $(document).ready(function(){
+    $('.your-class').slick({
+      autoplay: true
+    });
+    });
+    </script>  
 
   </body>
 </html>
