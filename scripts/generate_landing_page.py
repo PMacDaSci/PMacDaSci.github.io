@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
 """
-Generate PMacDaSci GitHub Pages landing page from the PMacDaSci organisation repositories.
+Generate the PMacDaSci GitHub Pages landing page from public organisation repositories.
+
+The generated page keeps the polished static-page layout:
+- hero section
+- current workshop materials section
+- historical/other materials section
+- scheduled workshops call-to-action
+
+Workshop cards are populated from GitHub repository metadata:
+- repository name
+- repository description
+- homepage / website link
+- GitHub repository URL
 """
 
 from __future__ import annotations
@@ -17,18 +29,59 @@ from typing import Any
 
 ORG = "PMacDaSci"
 LANDING_REPO = "PMacDaSci.github.io"
-CONNECT_PAGE_URL = os.environ.get("CONNECT_PAGE_URL", "https://petermacvic.sharepoint.com/sites/connect-research/SitePages/Informatics-Consulting.aspx")
+CONNECT_PAGE_URL = os.environ.get("CONNECT_PAGE_URL", "TODO_CONNECT_PAGE_URL")
 
+# Curate display names and grouping while still pulling descriptions and links from GitHub.
+# Set hidden=True to omit a repository from the landing page.
 WORKSHOP_OVERRIDES: dict[str, dict[str, str | bool]] = {
-    "docker-intro": {"title": "Reproducible Computational Environments using Containers"},
-    "shell-novice": {"title": "Unix Shell / Bash"},
-    "IntroPython-Bio": {"title": "Introduction to Python for Biological Data"},
-    "REDCap_R": {"title": "Working with REDCap Data in R"},
-    "nextflow-intro-workshop": {"title": "Introduction to Nextflow"},
-    "IntroPython-pandas": {"title": "Introduction to Python and pandas"},
-    "IntroR": {"title": "Introduction to R"},
-    "R4CancerSci": {"title": "R Skills Building for Cancer Scientists"},
-    "survival-analysis-intro": {"title": "Introduction to Survival Analysis"},
+    "docker-intro": {
+        "title": "Reproducible Computational Environments using Containers",
+        "group": "current",
+    },
+    "shell-novice": {
+        "title": "Unix Shell / Bash",
+        "group": "current",
+    },
+    "IntroPython-Bio": {
+        "title": "Introduction to Python for Biological Data",
+        "group": "current",
+    },
+    "REDCap_R": {
+        "title": "Working with REDCap Data in R",
+        "group": "current",
+    },
+    "nextflow-intro-workshop": {
+        "title": "Introduction to Nextflow",
+        "group": "current",
+    },
+    "IntroPython-pandas": {
+        "title": "Introduction to Python and pandas",
+        "group": "current",
+    },
+    "IntroR": {
+        "title": "Introduction to R",
+        "group": "current",
+    },
+    "R4CancerSci": {
+        "title": "R Skills Building for Cancer Scientists",
+        "group": "current",
+    },
+    "survival-analysis-intro": {
+        "title": "Introduction to Survival Analysis",
+        "group": "current",
+    },
+    "AI_Beyond_Omics_Workshop": {
+        "title": "AI Beyond Omics Workshop",
+        "group": "current",
+    },
+    "plotting_challenges": {
+        "title": "Plotting Challenges",
+        "group": "current",
+    },
+    "r-intro-tidyverse": {
+        "title": "Introduction to R Tidyverse",
+        "group": "current",
+    },
 }
 
 
@@ -40,6 +93,7 @@ class Repo:
     repo_url: str
     homepage: str
     updated_at: str
+    group: str
 
 
 def github_api(url: str) -> tuple[list[dict[str, Any]], dict[str, str]]:
@@ -57,8 +111,7 @@ def github_api(url: str) -> tuple[list[dict[str, Any]], dict[str, str]]:
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             data = json.loads(response.read().decode("utf-8"))
-            response_headers = dict(response.headers)
-            return data, response_headers
+            return data, dict(response.headers)
     except urllib.error.HTTPError as exc:
         print(f"GitHub API request failed: {exc.code} {exc.reason}", file=sys.stderr)
         print(exc.read().decode("utf-8", errors="replace"), file=sys.stderr)
@@ -73,10 +126,8 @@ def parse_next_link(link_header: str | None) -> str | None:
         section = part.strip().split(";")
         if len(section) < 2:
             continue
-        url_part = section[0].strip()
-        rel_part = section[1].strip()
-        if rel_part == 'rel="next"':
-            return url_part.strip("<>")
+        if section[1].strip() == 'rel="next"':
+            return section[0].strip().strip("<>")
     return None
 
 
@@ -103,6 +154,16 @@ def normalise_homepage(homepage: str | None) -> str:
     return homepage
 
 
+def infer_group(repo_name: str, homepage: str, archived: bool) -> str:
+    if archived:
+        return "historical"
+    if repo_name in WORKSHOP_OVERRIDES:
+        return str(WORKSHOP_OVERRIDES[repo_name].get("group", "current"))
+    if homepage:
+        return "current"
+    return "historical"
+
+
 def build_workshops(raw_repos: list[dict[str, Any]]) -> list[Repo]:
     workshops: list[Repo] = []
 
@@ -115,23 +176,22 @@ def build_workshops(raw_repos: list[dict[str, Any]]) -> list[Repo]:
         if override.get("hidden") is True:
             continue
 
+        homepage = normalise_homepage(str(override.get("homepage") or raw.get("homepage") or ""))
         description = str(
             override.get("description")
             or raw.get("description")
             or "Workshop materials from the PMacDaSci GitHub organisation."
         )
 
-        homepage = normalise_homepage(str(override.get("homepage") or raw.get("homepage") or ""))
-        repo_url = str(raw["html_url"])
-
         workshops.append(
             Repo(
                 name=name,
                 title=str(override.get("title") or humanise_repo_name(name)),
                 description=description,
-                repo_url=repo_url,
+                repo_url=str(raw["html_url"]),
                 homepage=homepage,
                 updated_at=str(raw.get("updated_at") or ""),
+                group=infer_group(name, homepage, bool(raw.get("archived", False))),
             )
         )
 
@@ -162,7 +222,26 @@ def render_cards(workshops: list[Repo]) -> str:
 
 
 def render_index(workshops: list[Repo]) -> str:
-    cards_html = render_cards(workshops)
+    current = [workshop for workshop in workshops if workshop.group == "current"]
+    historical = [workshop for workshop in workshops if workshop.group != "current"]
+
+    current_cards = render_cards(current)
+    historical_cards = render_cards(historical)
+
+    historical_section = ""
+    if historical_cards:
+        historical_section = f"""
+    <section class="section compact-section">
+      <h2>Other and historical materials</h2>
+      <p class="section-intro">
+        Additional repositories from previous workshops and related training activities.
+      </p>
+
+      <div class="cards">
+{historical_cards}
+      </div>
+    </section>
+"""
 
     return f"""<!doctype html>
 <html lang="en">
@@ -184,7 +263,7 @@ def render_index(workshops: list[Repo]) -> str:
         their own data.
       </p>
       <div class="actions">
-        <a class="button primary" href="#workshops">View workshop materials</a>
+        <a class="button primary" href="#workshops">View current materials</a>
         <a class="button secondary" href="{html.escape(CONNECT_PAGE_URL)}">Scheduled workshops</a>
       </div>
     </div>
@@ -192,17 +271,17 @@ def render_index(workshops: list[Repo]) -> str:
 
   <main class="container">
     <section id="workshops" class="section">
-      <h2>Workshop materials available</h2>
+      <h2>Current workshop materials</h2>
       <p class="section-intro">
-        Browse training materials automatically generated from the public repositories in the
+        Browse current training materials automatically generated from the public repositories in the
         <a href="https://github.com/{ORG}">{ORG} GitHub organisation</a>.
       </p>
 
       <div class="cards">
-{cards_html}
+{current_cards}
       </div>
     </section>
-
+{historical_section}
     <section class="section schedule">
       <h2>Scheduled workshops</h2>
       <p>
