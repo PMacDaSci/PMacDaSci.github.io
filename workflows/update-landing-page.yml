@@ -22,7 +22,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Replace this with the final Peter Mac Connect URL.
-          CONNECT_PAGE_URL: "TODO_CONNECT_PAGE_URL"
+          CONNECT_PAGE_URL: "https://petermacvic.sharepoint.com/sites/connect-research/SitePages/Informatics-Consulting.aspx"
         run: python scripts/generate_landing_page.py
 
       - name: Commit generated landing page if changed
