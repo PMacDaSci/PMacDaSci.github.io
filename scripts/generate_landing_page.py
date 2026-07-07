@@ -274,7 +274,7 @@ def render_index(workshops: list[Repo]) -> str:
       <h2>Current workshop materials</h2>
       <p class="section-intro">
         Browse current training materials automatically generated from the public repositories in the
-        <a href="https://github.com/{ORG}">{ORG} GitHub organisation</a>.
+        <a href="https://github.com/{ORG}">{ORG} GitHub Organisation</a>.
       </p>
 
       <div class="cards">
@@ -294,7 +294,7 @@ def render_index(workshops: list[Repo]) -> str:
   <footer>
     <div class="container">
       <p>Peter MacCallum Cancer Centre · Research Computing Facility</p>
-      <p><a href="https://github.com/{ORG}">GitHub organisation</a></p>
+      <p><a href="https://github.com/{ORG}">GitHub Organisation</a></p>
     </div>
   </footer>
 </body>
