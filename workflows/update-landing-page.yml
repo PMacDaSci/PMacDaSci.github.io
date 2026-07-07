@@ -1,4 +1,4 @@
-name: Update landing page
+name: Update landing page updated
 
 on:
   workflow_dispatch:
